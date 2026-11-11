@@ -32,7 +32,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p public
-          cp cv.pdf public/cv.pdf
+          cp cv.pdf "public/Youssef Atef React Frontend Engineer CV.pdf"
 
           cat > public/index.html <<'EOF'
           <!doctype html>
@@ -62,12 +62,12 @@ jobs:
           <body>
             <header>
               <strong>Youssef Atef | CV</strong>
-              <a href="/cv.pdf" download="Youssef-Atef-CV.pdf">
-                Download PDF
+              <a href="/Youssef%20Atef%20React%20Frontend%20Engineer%20CV.pdf" download="Youssef Atef React Frontend Engineer CV.pdf">
+                Download Cv
               </a>
             </header>
             <main>
-              <iframe src="/cv.pdf" title="Youssef Atef CV"></iframe>
+              <iframe src="/Youssef%20Atef%20React%20Frontend%20Engineer%20CV.pdf" title="Youssef Atef CV"></iframe>
             </main>
           </body>
           </html>
