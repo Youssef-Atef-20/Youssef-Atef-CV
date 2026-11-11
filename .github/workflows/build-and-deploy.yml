@@ -1,3 +1,4 @@
+
 name: Build and Deploy CV
 
 on:
@@ -8,10 +9,6 @@ on:
 
 permissions:
   contents: read
-
-concurrency:
-  group: cv-production
-  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
@@ -32,78 +29,12 @@ jobs:
           root_file: cv.tex
           latexmk_use_xelatex: false
 
-      - name: Cache PDF.js distribution
-        id: pdfjs-cache
-        uses: actions/cache@v4
-        with:
-          path: .pdfjs/pdfjs-dist
-          key: pdfjs-dist-${{ runner.os }}-5.4.296-v2
-
-      # Download the published package archive and extract it directly.
-      # This avoids npm install layout/cache inconsistencies.
-      - name: Download PDF.js distribution
-        if: steps.pdfjs-cache.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          mkdir -p .pdfjs
-          npm pack pdfjs-dist@5.4.296 --pack-destination .pdfjs
-          mkdir -p .pdfjs/pdfjs-dist
-          tar -xzf .pdfjs/pdfjs-dist-5.4.296.tgz \
-            --strip-components=1 \
-            -C .pdfjs/pdfjs-dist
-          rm .pdfjs/pdfjs-dist-5.4.296.tgz
-
-      - name: Verify PDF.js distribution
-        run: |
-          set -euo pipefail
-          PDFJS_DIR=".pdfjs/pdfjs-dist"
-
-          echo "=== PDF.js package contents ==="
-          ls -lah "$PDFJS_DIR"
-          ls -lah "$PDFJS_DIR/web" | head -30
-          ls -lah "$PDFJS_DIR/build" | head -30
-
-          for file in "$PDFJS_DIR/web/viewer.html" "$PDFJS_DIR/web/viewer.mjs" "$PDFJS_DIR/build/pdf.mjs" "$PDFJS_DIR/build/pdf.worker.mjs"; do
-            if [ ! -f "$file" ]; then
-              echo "::error::PDF.js package is missing expected file: $file"
-              exit 1
-            fi
-          done
-
-          echo "PDF.js distribution is ready."
-          
-      - name: Install Vercel CLI
-        run: npm install --global vercel@65.14.0
-
-      - name: Pull Vercel Project Settings
-        run: vercel pull --yes --environment=production
-
       - name: Prepare static site
         run: |
-          set -euo pipefail
-
-          PDFJS_DIR=".pdfjs/pdfjs-dist"
-
-          for file in favicon-16x16.png favicon-32x32.png cv.pdf "$PDFJS_DIR/web/viewer.html" "$PDFJS_DIR/build/pdf.mjs"; do
-            if [ ! -f "$file" ]; then
-              echo "::error::Required file is missing: $file"
-              exit 1
-            fi
-          done
-
-          mkdir -p public/pdfjs
-          cp favicon-16x16.png public/
-          cp favicon-32x32.png public/
+          mkdir -p public
+          cp favicon-16x16.png public/favicon-16x16.png
+          cp favicon-32x32.png public/favicon-32x32.png
           cp cv.pdf "public/Youssef Atef React Frontend Engineer CV.pdf"
-
-          cp -r "$PDFJS_DIR/web" public/pdfjs/
-          cp -r "$PDFJS_DIR/build" public/pdfjs/
-
-          for folder in cmaps standard_fonts wasm iccs; do
-            if [ -d "$PDFJS_DIR/$folder" ]; then
-              cp -r "$PDFJS_DIR/$folder" public/pdfjs/
-            fi
-          done
 
           cat > public/index.html <<'EOF'
           <!doctype html>
@@ -113,75 +44,47 @@ jobs:
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
             <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-            <meta name="theme-color" content="#111827">
-            <meta name="description" content="Youssef Atef - React Frontend Engineer CV">
             <title>Youssef Atef | CV</title>
             <style>
               * { box-sizing: border-box; }
               html, body { margin: 0; width: 100%; height: 100%; }
-              body { font-family: Arial, sans-serif; background: #f3f4f6; overflow: hidden; }
+              body { font-family: Arial, sans-serif; background: #f3f4f6; }
               header {
                 height: 56px; display: flex; align-items: center;
                 justify-content: space-between; padding: 0 18px;
-                background: #111827; color: white; gap: 12px;
+                background: #111827; color: white;
               }
-              header strong { font-size: 16px; }
               header a {
-                color: white; text-decoration: none; background: #2563eb;
-                padding: 9px 14px; border-radius: 7px; font-size: 14px;
-                white-space: nowrap;
+                color: white; text-decoration: none;
+                background: #2563eb; padding: 9px 14px;
+                border-radius: 7px; font-size: 14px;
               }
-              header a:hover { background: #1d4ed8; }
-              main { width: 100%; height: calc(100vh - 56px); height: calc(100dvh - 56px); }
-              iframe { display: block; width: 100%; height: 100%; border: 0; }
-              @media (max-width: 480px) {
-                header { padding: 0 12px; }
-                header strong { font-size: 14px; }
-                header a { padding: 9px 11px; font-size: 13px; }
-              }
+              main { height: calc(100% - 56px); }
+              iframe { width: 100%; height: 100%; border: 0; }
             </style>
           </head>
           <body>
             <header>
               <strong>Youssef Atef | CV</strong>
-              <a href="/Youssef%20Atef%20React%20Frontend%20Engineer%20CV.pdf"
-                 download="Youssef Atef React Frontend Engineer CV.pdf">Download CV</a>
+              <a href="/Youssef%20Atef%20React%20Frontend%20Engineer%20CV.pdf" download="Youssef Atef React Frontend Engineer CV.pdf">
+                Download Cv
+              </a>
             </header>
             <main>
-              <iframe
-                src="/pdfjs/web/viewer.html?file=%2FYoussef%20Atef%20React%20Frontend%20Engineer%20CV.pdf"
-                title="Youssef Atef CV">
-              </iframe>
+              <iframe src="/Youssef%20Atef%20React%20Frontend%20Engineer%20CV.pdf" title="Youssef Atef CV"></iframe>
             </main>
           </body>
           </html>
           EOF
 
-      - name: Prepare Vercel Build Output
-        run: |
-          set -euo pipefail
-          mkdir -p .vercel/output/static
-          cp -a public/. .vercel/output/static/
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
 
-          cat > .vercel/output/config.json <<'EOF'
-          {
-            "version": 3,
-            "routes": [
-              { "handle": "filesystem" }
-            ]
-          }
-          EOF
+      - name: Pull Vercel Project Settings
+        run: vercel pull --yes --environment=production
 
-          echo "=== Static output size ==="
-          du -sh .vercel/output/static
-
-          echo "=== Verify deployment files ==="
-          test -f .vercel/output/static/index.html
-          test -f ".vercel/output/static/Youssef Atef React Frontend Engineer CV.pdf"
-          test -f .vercel/output/static/pdfjs/web/viewer.html
-          test -f .vercel/output/static/favicon-16x16.png
-          test -f .vercel/output/static/favicon-32x32.png
-          echo "All deployment files are ready."
+      - name: Build Vercel Output
+        run: vercel build --prod
 
       - name: Deploy to Vercel
         run: vercel deploy --prebuilt --prod
