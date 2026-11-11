@@ -23,53 +23,148 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Compile LaTeX CV
         uses: xu-cheng/latex-action@v3
         with:
           root_file: cv.tex
           latexmk_use_xelatex: false
 
+      - name: Install PDF.js
+        run: npm install --no-save --no-package-lock pdfjs-dist@5
+
       - name: Prepare static site
         run: |
-          mkdir -p public
+          mkdir -p public/pdfjs
+
+          # Copy favicons
+          cp favicon-16x16.png public/favicon-16x16.png
           cp favicon-32x32.png public/favicon-32x32.png
+
+          # Copy CV PDF
           cp cv.pdf "public/Youssef Atef React Frontend Engineer CV.pdf"
 
+          # Copy PDF.js viewer and required resources
+          cp -r node_modules/pdfjs-dist/web public/pdfjs/
+          cp -r node_modules/pdfjs-dist/build public/pdfjs/
+          cp -r node_modules/pdfjs-dist/cmaps public/pdfjs/
+          cp -r node_modules/pdfjs-dist/standard_fonts public/pdfjs/
+          cp -r node_modules/pdfjs-dist/wasm public/pdfjs/
+          cp -r node_modules/pdfjs-dist/iccs public/pdfjs/
+
+          # Generate website
           cat > public/index.html <<'EOF'
           <!doctype html>
           <html lang="en">
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
+
+            <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
             <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+
+            <meta name="theme-color" content="#111827">
+            <meta name="description" content="Youssef Atef - React Frontend Engineer CV">
+
             <title>Youssef Atef | CV</title>
+
             <style>
-              * { box-sizing: border-box; }
-              html, body { margin: 0; width: 100%; height: 100%; }
-              body { font-family: Arial, sans-serif; background: #f3f4f6; }
+              * {
+                box-sizing: border-box;
+              }
+
+              html, body {
+                margin: 0;
+                width: 100%;
+                height: 100%;
+              }
+
+              body {
+                font-family: Arial, sans-serif;
+                background: #f3f4f6;
+                overflow: hidden;
+              }
+
               header {
-                height: 56px; display: flex; align-items: center;
-                justify-content: space-between; padding: 0 18px;
-                background: #111827; color: white;
+                height: 56px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 18px;
+                background: #111827;
+                color: white;
+                gap: 12px;
               }
+
+              header strong {
+                font-size: 16px;
+              }
+
               header a {
-                color: white; text-decoration: none;
-                background: #2563eb; padding: 9px 14px;
-                border-radius: 7px; font-size: 14px;
+                color: white;
+                text-decoration: none;
+                background: #2563eb;
+                padding: 9px 14px;
+                border-radius: 7px;
+                font-size: 14px;
+                white-space: nowrap;
               }
-              main { height: calc(100% - 56px); }
-              iframe { width: 100%; height: 100%; border: 0; }
+
+              header a:hover {
+                background: #1d4ed8;
+              }
+
+              main {
+                height: calc(100vh - 56px);
+                height: calc(100dvh - 56px);
+                width: 100%;
+              }
+
+              iframe {
+                display: block;
+                width: 100%;
+                height: 100%;
+                border: 0;
+              }
+
+              @media (max-width: 480px) {
+                header {
+                  padding: 0 12px;
+                }
+
+                header strong {
+                  font-size: 14px;
+                }
+
+                header a {
+                  padding: 9px 11px;
+                  font-size: 13px;
+                }
+              }
             </style>
           </head>
+
           <body>
             <header>
               <strong>Youssef Atef | CV</strong>
-              <a href="/Youssef%20Atef%20React%20Frontend%20Engineer%20CV.pdf" download="Youssef Atef React Frontend Engineer CV.pdf">
-                Download Cv
+
+              <a
+                href="/Youssef%20Atef%20React%20Frontend%20Engineer%20CV.pdf"
+                download="Youssef Atef React Frontend Engineer CV.pdf">
+                Download CV
               </a>
             </header>
+
             <main>
-              <iframe src="/Youssef%20Atef%20React%20Frontend%20Engineer%20CV.pdf" title="Youssef Atef CV"></iframe>
+              <iframe
+                src="/pdfjs/web/viewer.html?file=%2FYoussef%20Atef%20React%20Frontend%20Engineer%20CV.pdf"
+                title="Youssef Atef CV"
+                allow="fullscreen">
+              </iframe>
             </main>
           </body>
           </html>
