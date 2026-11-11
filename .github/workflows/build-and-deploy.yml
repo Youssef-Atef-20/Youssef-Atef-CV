@@ -32,6 +32,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p public
+          cp favicon-32x32.png public/favicon-32x32.png
           cp cv.pdf "public/Youssef Atef React Frontend Engineer CV.pdf"
 
           cat > public/index.html <<'EOF'
@@ -40,6 +41,7 @@ jobs:
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
+            <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
             <title>Youssef Atef | CV</title>
             <style>
               * { box-sizing: border-box; }
