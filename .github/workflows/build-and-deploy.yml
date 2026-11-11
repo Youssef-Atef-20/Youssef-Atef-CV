@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cv-production-deployment
+  group: cv-production
   cancel-in-progress: true
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Compile LaTeX CV
+      # 2. Compile CV
       - name: Compile LaTeX CV
         uses: xu-cheng/latex-action@v3
         with:
@@ -43,7 +43,7 @@ jobs:
           path: .pdfjs/node_modules
           key: pdfjs-${{ runner.os }}-5.4.296
 
-      # 4. Install PDF.js only when cache is missing
+      # 4. Install PDF.js if cache is missing
       - name: Install PDF.js
         if: steps.pdfjs-cache.outputs.cache-hit != 'true'
         run: |
@@ -53,34 +53,39 @@ jobs:
             --no-package-lock \
             pdfjs-dist@5.4.296
 
-      # 5. Prepare website
+      # 5. Prepare static website
       - name: Prepare static site
         run: |
-          set -e
+          set -euo pipefail
 
           PDFJS_DIR=".pdfjs/node_modules/pdfjs-dist"
 
+          test -f favicon-16x16.png
+          test -f favicon-32x32.png
+          test -f cv.pdf
+          test -f "$PDFJS_DIR/web/viewer.html"
+
           mkdir -p public/pdfjs
 
-          # Copy favicons
-          cp favicon-16x16.png public/favicon-16x16.png
-          cp favicon-32x32.png public/favicon-32x32.png
+          # Favicons
+          cp favicon-16x16.png public/
+          cp favicon-32x32.png public/
 
-          # Copy CV
+          # CV PDF
           cp cv.pdf "public/Youssef Atef React Frontend Engineer CV.pdf"
 
-          # Copy PDF.js viewer and engine
+          # PDF.js viewer and engine
           cp -r "$PDFJS_DIR/web" public/pdfjs/
           cp -r "$PDFJS_DIR/build" public/pdfjs/
 
-          # Copy optional PDF.js resources
+          # PDF.js resources
           for folder in cmaps standard_fonts wasm iccs; do
             if [ -d "$PDFJS_DIR/$folder" ]; then
               cp -r "$PDFJS_DIR/$folder" public/pdfjs/
             fi
           done
 
-          # Generate website
+          # Website HTML
           cat > public/index.html <<'EOF'
           <!doctype html>
           <html lang="en">
@@ -143,9 +148,9 @@ jobs:
               }
 
               main {
+                width: 100%;
                 height: calc(100vh - 56px);
                 height: calc(100dvh - 56px);
-                width: 100%;
               }
 
               iframe {
@@ -186,26 +191,54 @@ jobs:
             <main>
               <iframe
                 src="/pdfjs/web/viewer.html?file=%2FYoussef%20Atef%20React%20Frontend%20Engineer%20CV.pdf"
-                title="Youssef Atef CV"
-                allow="fullscreen">
+                title="Youssef Atef CV">
               </iframe>
             </main>
           </body>
           </html>
           EOF
 
-      # 6. Setup Vercel CLI
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+      # 6. Prepare Vercel Build Output API
+      - name: Prepare Vercel Build Output
+        run: |
+          set -euo pipefail
 
-      # 7. Pull project configuration
+          mkdir -p .vercel/output/static
+
+          cp -a public/. .vercel/output/static/
+
+          cat > .vercel/output/config.json <<'EOF'
+          {
+            "version": 3,
+            "routes": [
+              {
+                "handle": "filesystem"
+              }
+            ]
+          }
+          EOF
+
+          # Verify deployment files
+          echo "=== Static output size ==="
+          du -sh .vercel/output/static
+
+          echo "=== Required files ==="
+          test -f .vercel/output/static/index.html
+          test -f ".vercel/output/static/Youssef Atef React Frontend Engineer CV.pdf"
+          test -f .vercel/output/static/pdfjs/web/viewer.html
+          test -f .vercel/output/static/favicon-16x16.png
+          test -f .vercel/output/static/favicon-32x32.png
+
+          echo "All required files are ready."
+
+      # 7. Install Vercel CLI
+      - name: Install Vercel CLI
+        run: npm install --global vercel@65.14.0
+
+      # 8. Pull Vercel project settings
       - name: Pull Vercel Project Settings
         run: vercel pull --yes --environment=production
 
-      # 8. Build Vercel output
-      - name: Build Vercel Output
-        run: vercel build --prod
-
-      # 9. Deploy
+      # 9. Deploy prebuilt output
       - name: Deploy to Vercel
         run: vercel deploy --prebuilt --prod
