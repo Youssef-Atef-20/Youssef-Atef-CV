@@ -26,6 +26,7 @@ jobs:
         uses: xu-cheng/latex-action@v3
         with:
           root_file: cv.tex
+          texlive_version: 2024
           latexmk_use_xelatex: false
 
       - name: Prepare static site
