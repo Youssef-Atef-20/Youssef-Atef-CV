@@ -1,0 +1,65 @@
+name: Build and Deploy CV
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compile LaTeX CV
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: cv.tex
+          latexmk_use_xelatex: false
+
+      - name: Prepare static site
+        run: |
+          mkdir -p public
+          cp cv.pdf public/cv.pdf
+          cat > public/index.html <<'EOF'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta name="robots" content="noindex">
+            <title>Youssef Atef | CV</title>
+            <style>
+              * { box-sizing: border-box; }
+              html, body { margin: 0; width: 100%; height: 100%; }
+              body { font-family: Arial, sans-serif; background: #f3f4f6; }
+              header { height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; background: #111827; color: white; }
+              header a { color: white; text-decoration: none; background: #2563eb; padding: 9px 14px; border-radius: 7px; font-size: 14px; }
+              main { height: calc(100% - 56px); }
+              iframe { width: 100%; height: 100%; border: 0; }
+            </style>
+          </head>
+          <body>
+            <header>
+              <strong>Youssef Atef | CV</strong>
+              <a href="/cv.pdf" download="Youssef-Atef-CV.pdf">Download PDF</a>
+            </header>
+            <main><iframe src="/cv.pdf" title="Youssef Atef CV"></iframe></main>
+          </body>
+          </html>
+          EOF
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: public
+          vercel-args: --prod
