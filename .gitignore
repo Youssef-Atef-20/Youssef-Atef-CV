@@ -1,0 +1,16 @@
+# LaTeX generated files
+*.aux
+*.log
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.toc
+*.blg
+*.bbl
+
+# Generated PDF (will be built by GitHub Actions)
+cv.pdf
+
+# Build logs
+build-output.txt
