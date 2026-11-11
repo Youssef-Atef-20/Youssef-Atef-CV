@@ -32,35 +32,46 @@ jobs:
           root_file: cv.tex
           latexmk_use_xelatex: false
 
-      - name: Cache PDF.js
+      - name: Cache PDF.js distribution
         id: pdfjs-cache
         uses: actions/cache@v4
         with:
-          path: .pdfjs/node_modules
-          key: pdfjs-${{ runner.os }}-5.4.296
+          path: .pdfjs/pdfjs-dist
+          key: pdfjs-dist-${{ runner.os }}-5.4.296-v2
 
-      - name: Install PDF.js on cache miss
+      # Download the published package archive and extract it directly.
+      # This avoids npm install layout/cache inconsistencies.
+      - name: Download PDF.js distribution
         if: steps.pdfjs-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
-          npm install --prefix .pdfjs --no-save --no-package-lock --no-audit --no-fund pdfjs-dist@5.4.296
+          mkdir -p .pdfjs
+          npm pack pdfjs-dist@5.4.296 --pack-destination .pdfjs
+          mkdir -p .pdfjs/pdfjs-dist
+          tar -xzf .pdfjs/pdfjs-dist-5.4.296.tgz \
+            --strip-components=1 \
+            -C .pdfjs/pdfjs-dist
+          rm .pdfjs/pdfjs-dist-5.4.296.tgz
 
-      # Validate the cache too. If it is incomplete, repair it instead of failing later.
-      - name: Verify and repair PDF.js installation
+      - name: Verify PDF.js distribution
         run: |
           set -euo pipefail
-          PDFJS_DIR=".pdfjs/node_modules/pdfjs-dist"
+          PDFJS_DIR=".pdfjs/pdfjs-dist"
 
-          if [ ! -f "$PDFJS_DIR/web/viewer.html" ] || [ ! -d "$PDFJS_DIR/build" ]; then
-            echo "PDF.js cache is missing or incomplete. Reinstalling..."
-            rm -rf .pdfjs/node_modules
-            npm install --prefix .pdfjs --no-save --no-package-lock --no-audit --no-fund pdfjs-dist@5.4.296
-          fi
+          echo "=== PDF.js package contents ==="
+          ls -lah "$PDFJS_DIR"
+          ls -lah "$PDFJS_DIR/web" | head -30
+          ls -lah "$PDFJS_DIR/build" | head -30
 
-          test -f "$PDFJS_DIR/web/viewer.html"
-          test -f "$PDFJS_DIR/build/pdf.mjs"
-          echo "PDF.js installation is ready."
+          for file in "$PDFJS_DIR/web/viewer.html" "$PDFJS_DIR/web/viewer.mjs" "$PDFJS_DIR/build/pdf.mjs" "$PDFJS_DIR/build/pdf.worker.mjs"; do
+            if [ ! -f "$file" ]; then
+              echo "::error::PDF.js package is missing expected file: $file"
+              exit 1
+            fi
+          done
 
+          echo "PDF.js distribution is ready."
+          
       - name: Install Vercel CLI
         run: npm install --global vercel@65.14.0
 
@@ -71,7 +82,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          PDFJS_DIR=".pdfjs/node_modules/pdfjs-dist"
+          PDFJS_DIR=".pdfjs/pdfjs-dist"
 
           for file in favicon-16x16.png favicon-32x32.png cv.pdf "$PDFJS_DIR/web/viewer.html" "$PDFJS_DIR/build/pdf.mjs"; do
             if [ ! -f "$file" ]; then
