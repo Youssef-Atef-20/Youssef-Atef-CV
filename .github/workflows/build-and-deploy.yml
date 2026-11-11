@@ -34,6 +34,7 @@ jobs:
           mkdir -p public
           cp favicon-16x16.png public/favicon-16x16.png
           cp favicon-32x32.png public/favicon-32x32.png
+          cp cv.pdf public/cv.pdf
           cp cv.pdf "public/Youssef Atef React Frontend Engineer CV.pdf"
 
           cat > public/index.html <<'EOF'
@@ -45,34 +46,11 @@ jobs:
             <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
             <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
             <title>Youssef Atef | CV</title>
-            <style>
-              * { box-sizing: border-box; }
-              html, body { margin: 0; width: 100%; height: 100%; }
-              body { font-family: Arial, sans-serif; background: #f3f4f6; }
-              header {
-                height: 56px; display: flex; align-items: center;
-                justify-content: space-between; padding: 0 18px;
-                background: #111827; color: white;
-              }
-              header a {
-                color: white; text-decoration: none;
-                background: #2563eb; padding: 9px 14px;
-                border-radius: 7px; font-size: 14px;
-              }
-              main { height: calc(100% - 56px); }
-              iframe { width: 100%; height: 100%; border: 0; }
-            </style>
           </head>
           <body>
-            <header>
-              <strong>Youssef Atef | CV</strong>
-              <a href="/Youssef%20Atef%20React%20Frontend%20Engineer%20CV.pdf" download="Youssef Atef React Frontend Engineer CV.pdf">
-                Download Cv
-              </a>
-            </header>
-            <main>
-              <iframe src="/Youssef%20Atef%20React%20Frontend%20Engineer%20CV.pdf" title="Youssef Atef CV"></iframe>
-            </main>
+            <h1>Youssef Atef | CV</h1>
+            <p><a href="/cv.pdf">Open CV PDF</a></p>
+            <p><a href="/Youssef%20Atef%20React%20Frontend%20Engineer%20CV.pdf" download="Youssef Atef React Frontend Engineer CV.pdf">Download CV</a></p>
           </body>
           </html>
           EOF
